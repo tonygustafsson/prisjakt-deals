@@ -1,0 +1,15 @@
+{
+  "name": "prisjakt-scraper",
+  "version": "1.0.0",
+  "description": "Using puppeteer to scrape prisjakt.nu for deals",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Tony Gustafsson",
+  "license": "ISC",
+  "dependencies": {
+    "@types/puppeteer": "^7.0.4",
+    "puppeteer": "^19.2.2"
+  }
+}
