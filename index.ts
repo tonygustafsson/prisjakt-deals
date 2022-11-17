@@ -1,5 +1,5 @@
-const puppeteer = require("puppeteer");
-const fs = require("fs");
+import puppeteer from "puppeteer";
+import fs from "fs";
 
 // Settings
 const baseUrl =
@@ -9,7 +9,18 @@ const pagesToScrape = 3;
 const dataFolder = "./data";
 const dataFile = `${dataFolder}/database.json`;
 
-const scrape = async (url) => {
+type Product = {
+  id: string;
+  title: string;
+  category: string;
+  percentageOff: string;
+  price: string;
+  url: string;
+};
+
+type ScrapeResult = Record<Product["id"], Product>;
+
+const scrape = async (url: string) => {
   console.log(`Scraping ${url}...`);
 
   const browser = await puppeteer.launch({});
@@ -24,16 +35,18 @@ const scrape = async (url) => {
       cards.map((card) => {
         const title = card.querySelector(
           "[data-test='ProductName']"
-        )?.innerText;
+        )?.textContent;
         const percentageOff = card.querySelector(
           "[class^='DiffPercentage']"
-        )?.innerText;
-        const url = card.querySelector("[class^='InternalLink']")?.href;
-        const price = card.querySelector("[class*='BaseButton']")?.innerText;
+        )?.textContent;
+        const url = card
+          .querySelector("[class^='InternalLink']")
+          ?.getAttribute("href");
+        const price = card.querySelector("[class*='BaseButton']")?.textContent;
         const category = card.querySelector(
           "[class^='CardContent'] > span:nth-child(2)"
-        )?.innerText;
-        const id = url.split("=")[1];
+        )?.textContent;
+        const id = url?.split("=")[1] || "0";
 
         return {
           id,
@@ -42,7 +55,7 @@ const scrape = async (url) => {
           percentageOff,
           price,
           url,
-        };
+        } as Product;
       })
   );
 
@@ -62,12 +75,15 @@ const scrape = async (url) => {
   // Convert the page arrays to a single object where the id is key and body is the value
   const data = productCards
     .flat()
-    .reduce((acc, product) => ({ ...acc, [product.id]: product }), {});
+    .reduce(
+      (acc, product) => ({ ...acc, [product.id]: product }),
+      {}
+    ) as ScrapeResult;
   const json = JSON.stringify(data);
-  let previousData = {};
+  let previousData = {} as ScrapeResult;
 
   if (fs.existsSync(dataFile)) {
-    const database = fs.readFileSync(dataFile);
+    const database = fs.readFileSync(dataFile).toString();
     previousData = JSON.parse(database);
   }
 
@@ -77,7 +93,7 @@ const scrape = async (url) => {
     }
 
     return acc;
-  }, []);
+  }, [] as Product[]);
 
   if (!newProducts.length) {
     console.log("No new products");
@@ -91,7 +107,5 @@ const scrape = async (url) => {
   }
 
   // Save data to file
-  fs.writeFileSync(dataFile, json, function (err) {
-    if (err) return console.log(err);
-  });
+  fs.writeFileSync(dataFile, json);
 })();
