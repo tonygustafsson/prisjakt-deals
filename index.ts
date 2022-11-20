@@ -1,24 +1,7 @@
 import puppeteer from "puppeteer";
-import fs from "fs";
-
-// Settings
-const baseUrl =
-  "https://www.prisjakt.nu/tema/dagens-deals?sort=price.diff_percentage%7Cdesc";
-const pageSize = 24;
-const pagesToScrape = 3;
-const dataFolder = "./data";
-const dataFile = `${dataFolder}/database.json`;
-
-type Product = {
-  id: string;
-  title: string;
-  category: string;
-  percentageOff: string;
-  price: string;
-  url: string;
-};
-
-type ScrapeResult = Record<Product["id"], Product>;
+import { baseUrl, pageSize, pagesToScrape } from "./constants";
+import { readJsonFromFile, saveJsonToFile } from "./utils/file";
+import type { Product, ScrapeResult } from "./@types/prisjakt-types";
 
 const scrape = async (url: string) => {
   console.log(`Scraping ${url}...`);
@@ -31,19 +14,21 @@ const scrape = async (url: string) => {
   // Map through all the products on the current page
   const productCards = await page.$$eval(
     "li[data-test='ProductGridCard']",
-    (cards) =>
-      cards.map((card) => {
-        const title = card.querySelector(
+    (cards: any[]) =>
+      cards.map((product) => {
+        const title = product.querySelector(
           "[data-test='ProductName']"
         )?.textContent;
-        const percentageOff = card.querySelector(
+        const percentageOff = product.querySelector(
           "[class^='DiffPercentage']"
         )?.textContent;
-        const url = card
+        const url = product
           .querySelector("[class^='InternalLink']")
           ?.getAttribute("href");
-        const price = card.querySelector("[class*='BaseButton']")?.textContent;
-        const category = card.querySelector(
+        const price = product.querySelector(
+          "[class*='BaseButton']"
+        )?.textContent;
+        const category = product.querySelector(
           "[class^='CardContent'] > span:nth-child(2)"
         )?.textContent;
         const id = url?.split("=")[1] || "0";
@@ -80,13 +65,9 @@ const scrape = async (url: string) => {
       {}
     ) as ScrapeResult;
   const json = JSON.stringify(data);
-  let previousData = {} as ScrapeResult;
+  const previousData = readJsonFromFile();
 
-  if (fs.existsSync(dataFile)) {
-    const database = fs.readFileSync(dataFile).toString();
-    previousData = JSON.parse(database);
-  }
-
+  // Get products that were not there last time script ran, or if the price is changed
   const newProducts = Object.keys(data).reduce((acc, id) => {
     if (!previousData[id] || previousData[id].price !== data[id].price) {
       return [...acc, data[id]];
@@ -101,11 +82,5 @@ const scrape = async (url: string) => {
     console.log(newProducts);
   }
 
-  // Be sure that the data folder exists
-  if (!fs.existsSync(dataFolder)) {
-    fs.mkdirSync(dataFolder);
-  }
-
-  // Save data to file
-  fs.writeFileSync(dataFile, json);
+  saveJsonToFile(json);
 })();
