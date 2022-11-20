@@ -1,6 +1,5 @@
 import puppeteer from "puppeteer";
 import { baseUrl, pageSize, pagesToScrape } from "./constants";
-import { normalizeProduct } from "./utils/normalizeProduct";
 import { readJsonFromFile, saveJsonToFile } from "./utils/file";
 import type { Product, ScrapeResult } from "./@types/prisjakt-types";
 
