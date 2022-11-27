@@ -1,5 +1,10 @@
 import puppeteer from "puppeteer";
-import { baseUrl, pageSize, pagesToScrape } from "./constants";
+import {
+  baseUrl,
+  categoriesToIgnore,
+  pageSize,
+  pagesToScrape,
+} from "./constants";
 import { readJsonFromFile, saveJsonToFile } from "./utils/file";
 import type { Product, ScrapeResult } from "./@types/prisjakt-types";
 
@@ -58,12 +63,14 @@ const scrape = async (url: string) => {
   );
 
   // Convert the page arrays to a single object where the id is key and body is the value
-  const data = productCards
-    .flat()
-    .reduce(
-      (acc, product) => ({ ...acc, [product.id]: product }),
-      {}
-    ) as ScrapeResult;
+  const data = productCards.flat().reduce((acc, product) => {
+    if (!product?.id || categoriesToIgnore.includes(product.category)) {
+      // Remove unwanted products
+      return acc;
+    }
+
+    return { ...acc, [product.id]: product };
+  }, {}) as ScrapeResult;
   const json = JSON.stringify(data);
   const previousData = readJsonFromFile();
 
