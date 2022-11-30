@@ -33,6 +33,9 @@ const scrape = async (url: string) => {
         const price = product.querySelector(
           "[class*='BaseButton']"
         )?.textContent;
+        const styledPrice = product.querySelector(
+          "[class^='StyledPrice']"
+        )?.textContent;
         const category = product.querySelector(
           "[class^='CardContent'] > span:nth-child(2)"
         )?.textContent;
@@ -43,8 +46,8 @@ const scrape = async (url: string) => {
           title,
           category,
           percentageOff,
-          price,
-          url,
+          price: price || styledPrice,
+          url: `https://www.prisjakt.nu${url}`,
         } as Product;
       })
   );
